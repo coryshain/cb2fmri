@@ -36,7 +36,7 @@ def read_scenario(path):
 
 def save_scenario(scenario, path):
     with open(path, 'w') as f:
-        json.dump(scenario, f)
+        json.dump(scenario, f, indent=2)
 
 
 def clean_scenario(scenario):
@@ -44,18 +44,21 @@ def clean_scenario(scenario):
     scenario['turn_state']['moves_remaining'] = 10000
     scenario['turn_state']['turns_left'] = 0
 
-    objectives = [{
-        'sender': 2,
-        'text': '',
-        'uuid': '',
-        'completed': False,
-        'cancelled': False,
-        'feedback_text': '',
-        'pos_feedback': 0,
-        'neg_feedback': 0
-    }]
+    objectives = [dict(
+        sender=2,
+        text='',
+        uuid='',
+        completed=False,
+        cancelled=False,
+        feedback_text='',
+        pos_feedback=0,
+        neg_feedback=0
+    )]
 
     scenario['objectives'] = objectives
+
+    for card in scenario['prop_update']['props']:
+        card['card_init']['hidden'] = True
 
     scenario['actor_state']['actors'][0]['location'] = dict(
         a=100,
@@ -67,13 +70,13 @@ def clean_scenario(scenario):
 
 
 def sample_card_properties():
-    return {
-        'color': np.random.randint(1, 7),
-        'shape': np.random.randint(1, 7),
-        'count': np.random.randint(1, 3),
-        'selected': False,
-        'hidden': False
-    }
+    return dict(
+        color=np.random.randint(1, 7),
+        shape=np.random.randint(1, 7),
+        count=np.random.randint(1, 3),
+        selected=False,
+        hidden=False
+    )
 
 
 def resample_scenario(scenario):
@@ -86,9 +89,9 @@ def resample_scenario(scenario):
     target_ids = sorted([card['id'] for card in target_set])
 
     target_properties = sample_card_properties()
-    color = target_properties['color'] - 1
-    shape = target_properties['shape'] - 1
-    count = target_properties['count'] - 1
+    color_ix = target_properties['color'] - 1
+    shape_ix = target_properties['shape'] - 1
+    count_ix = target_properties['count'] - 1
 
     for card in cards:
         if card['id'] in target_ids:
@@ -100,9 +103,9 @@ def resample_scenario(scenario):
             card['card_init'] = distractor_properties
 
     instructions = '%s %s %s.' % (
-        NUMBERS[count],
-        COLORS[color],
-        SHAPES[shape][count > 0]
+        NUMBERS[count_ix],
+        COLORS[color_ix],
+        SHAPES[shape_ix][count_ix > 0]
     )
 
     scenario['objectives'][0]['text'] = instructions.upper()
@@ -114,11 +117,11 @@ def resample_scenario(scenario):
 
 def set_difficulty(scenario, difficulty='easy'):
     if difficulty == 'easy':
-        scenario['map']['fog_start'] = 50
-        scenario['map']['fog_end'] = 51
+        scenario['map']['fog_start'] = 30
+        scenario['map']['fog_end'] = 31
     elif difficulty == 'hard':
-        scenario['map']['fog_start'] = 3
-        scenario['map']['fog_end'] = 6
+        scenario['map']['fog_start'] = 2
+        scenario['map']['fog_end'] = 4
     else:
         raise ValueError('Unrecognized difficulty level: %s' % difficulty)
 
@@ -144,4 +147,5 @@ if __name__ == '__main__':
                 sample_ix += 1
                 out_path = os.path.join('scenarios_sampled', 'scenario%03d_%s_sample%03d.json' % \
                                     (scenario_ix, difficulty, sample_ix))
+            scenario = set_difficulty(scenario, difficulty)
             save_scenario(scenario, out_path)
